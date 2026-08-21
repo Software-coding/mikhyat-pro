@@ -80,14 +80,14 @@ class PdfService {
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text(_title(kind), style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
+            pw.Text(_title(kind), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
             pw.SizedBox(height: 3),
-            pw.Text('${shortDate(r.start)} — ${shortDate(r.end)}', style: const pw.TextStyle(fontSize: 10), textDirection: pw.TextDirection.rtl),
+            pw.Text('${shortDate(r.start)} — ${shortDate(r.end)}', style: pw.TextStyle(fontSize: 10), textDirection: pw.TextDirection.rtl),
           ]),
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500), borderRadius: pw.BorderRadius.circular(8)),
-            child: pw.Text('مِخيط Pro', style: const pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
+            child: pw.Text('مِخيط Pro', style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
           ),
         ],
       ),
@@ -126,8 +126,8 @@ class PdfService {
         footer: (context) => pw.Container(
           margin: const pw.EdgeInsets.only(top: 10),
           child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text('تم إنشاء التقرير من مِخيط Pro', style: const pw.TextStyle(fontSize: 8), textDirection: pw.TextDirection.rtl),
-            pw.Text('صفحة ${context.pageNumber} من ${context.pagesCount}', style: const pw.TextStyle(fontSize: 8), textDirection: pw.TextDirection.rtl),
+            pw.Text('تم إنشاء التقرير من مِخيط Pro', style: pw.TextStyle(fontSize: 8), textDirection: pw.TextDirection.rtl),
+            pw.Text('صفحة ${context.pageNumber} من ${context.pagesCount}', style: pw.TextStyle(fontSize: 8), textDirection: pw.TextDirection.rtl),
           ]),
         ),
         build: (_) => [...header, ...body],
@@ -189,9 +189,9 @@ class PdfService {
           padding: const pw.EdgeInsets.all(10),
           decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(8)),
           child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text(e.$1, style: const pw.TextStyle(fontSize: 9), textDirection: pw.TextDirection.rtl),
+            pw.Text(e.$1, style: pw.TextStyle(fontSize: 9), textDirection: pw.TextDirection.rtl),
             pw.SizedBox(height: 4),
-            pw.Text(e.$2, style: const pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
+            pw.Text(e.$2, style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
           ]),
         ),
       )).toList(),
@@ -204,7 +204,7 @@ class PdfService {
       padding: const pw.EdgeInsets.all(9),
       decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(8)),
       child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-        pw.Text('أكثر التعديلات استخدامًا', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), textDirection: pw.TextDirection.rtl),
+        pw.Text('أكثر التعديلات استخدامًا', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10), textDirection: pw.TextDirection.rtl),
         pw.SizedBox(height: 5),
         pw.Wrap(
           spacing: 6,
@@ -212,7 +212,7 @@ class PdfService {
           children: r.topModifications.map((m) => pw.Container(
             padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400), borderRadius: pw.BorderRadius.circular(5)),
-            child: pw.Text('${m.name} • ${m.count} قطعة • ${money(m.revenue)}', style: const pw.TextStyle(fontSize: 7), textDirection: pw.TextDirection.rtl),
+            child: pw.Text('${m.name} • ${m.count} قطعة • ${money(m.revenue)}', style: pw.TextStyle(fontSize: 7), textDirection: pw.TextDirection.rtl),
           )).toList(),
         ),
       ]),
@@ -221,7 +221,7 @@ class PdfService {
 
   pw.Widget _sectionTitle(String title) => pw.Padding(
         padding: const pw.EdgeInsets.only(bottom: 6),
-        child: pw.Text(title, style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
+        child: pw.Text(title, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
       );
 
   pw.Widget _piecesTable(ReportData r) {
@@ -240,8 +240,8 @@ class PdfService {
     ];
     return pw.TableHelper.fromTextArray(
       data: data,
-      headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
-      cellStyle: const pw.TextStyle(fontSize: 7.5),
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+      cellStyle: pw.TextStyle(fontSize: 7.5),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
       cellAlignment: pw.Alignment.centerRight,
       headerAlignment: pw.Alignment.centerRight,
@@ -261,8 +261,8 @@ class PdfService {
     ];
     return pw.TableHelper.fromTextArray(
       data: data,
-      headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
-      cellStyle: const pw.TextStyle(fontSize: 8),
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+      cellStyle: pw.TextStyle(fontSize: 8),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
       cellAlignment: pw.Alignment.centerRight,
       headerAlignment: pw.Alignment.centerRight,
@@ -278,8 +278,8 @@ class PdfService {
           ['اليوم', 'القطع', 'العمليات', 'الإيرادات', 'السحبيات', 'الصافي'],
           ...rows.map((d) => [shortDate(d.date), '${d.pieces}', '${d.jobs}', money(d.revenue), money(d.expenses), money(d.net)]),
         ],
-        headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
-        cellStyle: const pw.TextStyle(fontSize: 8),
+        headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+        cellStyle: pw.TextStyle(fontSize: 8),
         headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
         cellAlignment: pw.Alignment.centerRight,
         headerAlignment: pw.Alignment.centerRight,
@@ -296,8 +296,8 @@ class PdfService {
         ['بداية الفترة', 'القطع', 'العمليات', 'الإيرادات', 'السحبيات', 'الصافي'],
         ...weeks.map((d) => [shortDate(d.date), '${d.pieces}', '${d.jobs}', money(d.revenue), money(d.expenses), money(d.net)]),
       ],
-      headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
-      cellStyle: const pw.TextStyle(fontSize: 8),
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+      cellStyle: pw.TextStyle(fontSize: 8),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
       cellAlignment: pw.Alignment.centerRight,
       headerAlignment: pw.Alignment.centerRight,
@@ -312,7 +312,7 @@ class PdfService {
         padding: const pw.EdgeInsets.all(10),
         decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500), borderRadius: pw.BorderRadius.circular(8)),
         child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-          pw.Text('المراجعة المحاسبية', style: const pw.TextStyle(fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
+          pw.Text('المراجعة المحاسبية', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textDirection: pw.TextDirection.rtl),
           pw.Text('${money(r.revenue)} − ${money(r.expenses)} = ${money(r.net)} (${_statusLabel(r)})', textDirection: pw.TextDirection.rtl),
         ]),
       );
