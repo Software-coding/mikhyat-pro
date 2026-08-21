@@ -142,11 +142,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         end: _end,
                         onPickRange: _pickRange,
                         onPrevious: () {
-                          if (_kind == ReportKind.weekly) _weekOffset--; else if (_kind == ReportKind.monthly) _monthOffset--;
+                          if (_kind == ReportKind.weekly) {
+                            _weekOffset--;
+                          } else if (_kind == ReportKind.monthly) {
+                            _monthOffset--;
+                          }
                           _load();
                         },
                         onNext: () {
-                          if (_kind == ReportKind.weekly) _weekOffset++; else if (_kind == ReportKind.monthly) _monthOffset++;
+                          if (_kind == ReportKind.weekly) {
+                            _weekOffset++;
+                          } else if (_kind == ReportKind.monthly) {
+                            _monthOffset++;
+                          }
                           _load();
                         },
                       ),
@@ -298,7 +306,7 @@ class _TopModifications extends StatelessWidget {
             runSpacing: 8,
             children: data.topModifications.map((m) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-              decoration: BoxDecoration(color: AppTheme.sage.withOpacity(.09), borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(color: AppTheme.sage.withValues(alpha: .09), borderRadius: BorderRadius.circular(14)),
               child: Text('${m.name} • ${m.count} قطعة • ${money(m.revenue)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
             )).toList(),
           ),

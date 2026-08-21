@@ -40,16 +40,22 @@ class _MoreScreenState extends State<MoreScreen> {
   }
 
   Future<void> _permanentPiece(Piece p) async {
+    final store = context.read<AppStore>();
     if (!await _confirmPermanent()) return;
-    await context.read<AppStore>().db.permanentlyDeletePiece(p.id);
-    await context.read<AppStore>().refresh();
+    if (!mounted) return;
+    await store.db.permanentlyDeletePiece(p.id);
+    await store.refresh();
+    if (!mounted) return;
     await _loadTrash();
   }
 
   Future<void> _permanentWithdrawal(Withdrawal w) async {
+    final store = context.read<AppStore>();
     if (!await _confirmPermanent()) return;
-    await context.read<AppStore>().db.permanentlyDeleteWithdrawal(w.id);
-    await context.read<AppStore>().refresh();
+    if (!mounted) return;
+    await store.db.permanentlyDeleteWithdrawal(w.id);
+    await store.refresh();
+    if (!mounted) return;
     await _loadTrash();
   }
 
@@ -80,6 +86,7 @@ class _MoreScreenState extends State<MoreScreen> {
   }
 
   Future<void> _importBackup() async {
+    final store = context.read<AppStore>();
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -91,9 +98,10 @@ class _MoreScreenState extends State<MoreScreen> {
     if (ok != true || !mounted) return;
     setState(() => _busy = true);
     try {
-      final changed = await context.read<AppStore>().db.importBackup();
+      final changed = await store.db.importBackup();
       if (changed) {
-        await context.read<AppStore>().refresh();
+        await store.refresh();
+        if (!mounted) return;
         await _loadTrash();
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت استعادة البيانات بنجاح')));
       }
@@ -139,7 +147,7 @@ class _MoreScreenState extends State<MoreScreen> {
             Expanded(child: Text('سلة المحذوفات', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(color: AppTheme.sage.withOpacity(.12), borderRadius: BorderRadius.circular(99)),
+              decoration: BoxDecoration(color: AppTheme.sage.withValues(alpha: .12), borderRadius: BorderRadius.circular(99)),
               child: Text('${store.trashCount}', style: const TextStyle(fontWeight: FontWeight.w900)),
             ),
           ]),
@@ -170,9 +178,9 @@ class _MoreScreenState extends State<MoreScreen> {
             ))),
           ],
           const SizedBox(height: 22),
-          Card(child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+          const Card(child: Padding(
+            padding: EdgeInsets.all(18),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('مِخيط Pro • Flutter', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
               SizedBox(height: 6),
               Text('يعمل محليًا على الهاتف بدون خادم وبدون حسابات وبدون سحابة. قاعدة البيانات SQLite داخل الجهاز.'),

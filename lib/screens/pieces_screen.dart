@@ -145,7 +145,7 @@ class _PiecesScreenState extends State<PiecesScreen> {
           child: RefreshIndicator(
             onRefresh: _load,
             child: _loading && _items.isEmpty
-                ? const ListView(children: [SizedBox(height: 180), Center(child: CircularProgressIndicator())])
+                ? ListView(children: const [SizedBox(height: 180), Center(child: CircularProgressIndicator())])
                 : _error != null
                     ? ListView(children: [Padding(padding: const EdgeInsets.all(20), child: Text(_error!, textAlign: TextAlign.center))])
                     : _items.isEmpty
@@ -182,11 +182,6 @@ class _PieceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final revision = context.watch<AppStore>().revision;
-    if (revision != _seenRevision) {
-      _seenRevision = revision;
-      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
-    }
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -212,7 +207,7 @@ class _PieceCard extends StatelessWidget {
               runSpacing: 7,
               children: piece.modifications.map((m) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(color: AppTheme.sage.withOpacity(.09), borderRadius: BorderRadius.circular(99)),
+                decoration: BoxDecoration(color: AppTheme.sage.withValues(alpha: .09), borderRadius: BorderRadius.circular(99)),
                 child: Text('${m.name} • ${money(m.pricePerPiece)} × ${m.appliedQuantity}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               )).toList(),
             ),

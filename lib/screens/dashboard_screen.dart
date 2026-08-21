@@ -77,7 +77,7 @@ class _WeekHero extends StatelessWidget {
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(color: color.withOpacity(.3), borderRadius: BorderRadius.circular(99)),
+          decoration: BoxDecoration(color: color.withValues(alpha: .3), borderRadius: BorderRadius.circular(99)),
           child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ),
       ]),

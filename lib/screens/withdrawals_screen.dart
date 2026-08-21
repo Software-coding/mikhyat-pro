@@ -106,7 +106,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
       Expanded(child: RefreshIndicator(
         onRefresh: _load,
         child: _loading && _items.isEmpty
-            ? const ListView(children: [SizedBox(height: 180), Center(child: CircularProgressIndicator())])
+            ? ListView(children: const [SizedBox(height: 180), Center(child: CircularProgressIndicator())])
             : _items.isEmpty
                 ? ListView(children: const [SizedBox(height: 100), Icon(Icons.payments_outlined, size: 50, color: Colors.black26), SizedBox(height: 12), Center(child: Text('لا توجد سحبيات'))])
                 : ListView.separated(

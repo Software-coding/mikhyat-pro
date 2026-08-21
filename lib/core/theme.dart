@@ -62,7 +62,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
-        indicatorColor: sage.withOpacity(.15),
+        indicatorColor: sage.withValues(alpha: .15),
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
         ),
