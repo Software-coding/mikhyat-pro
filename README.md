@@ -59,6 +59,8 @@
 - تصدير نسخة قاعدة البيانات من قسم «المزيد».
 - استعادة نسخة `.db` بعد التحقق من سلامة الملف.
 - قبل الاستعادة، ينشئ التطبيق نسخة أمان من البيانات الحالية.
+- إذا فشلت الاستعادة بعد استبدال الملف، يرجع التطبيق تلقائيًا إلى نسخة الأمان السابقة.
+- تنظيف آخر 14 نسخة يخص النسخ التلقائية فقط ولا يحذف النسخ اليدوية.
 - بنية قاعدة البيانات متوافقة مع Mikhyat Pro V5 على الكمبيوتر.
 
 ---
@@ -102,13 +104,40 @@ flutter pub get
 
 # إنشاء APK
 
-على Windows شغّل:
+يوجد الآن مساران واضحان للبناء:
 
-`BUILD_APK.bat`
+## APK للتجربة المحلية
 
-السكريبت ينفذ الاختبارات أولًا ثم يبني Release APK.
+لا يحتاج مفتاح توقيع إنتاجي. على Windows شغّل:
 
-بعد نجاح البناء ستجد الملف هنا:
+`BUILD_APK_DEBUG.bat`
+
+وسيظهر الملف هنا:
+
+`build/app/outputs/flutter-apk/app-debug.apk`
+
+## Release APK للإصدار الفعلي
+
+لم يعد المشروع يوقّع نسخة Release بمفتاح Debug. قبل أول بناء إنتاجي:
+
+1. أنشئ keystore خاصًا بك واحفظه داخل `android/` باسم مثل `upload-keystore.jks`.
+2. انسخ:
+   `android/key.properties.example`
+   إلى:
+   `android/key.properties`
+3. ضع بيانات التوقيع الحقيقية داخل `key.properties`.
+4. شغّل:
+   `BUILD_APK.bat`
+
+مثال لإنشاء keystore باستخدام Java JDK:
+
+```bash
+keytool -genkeypair -v -keystore android/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+ملفا `key.properties` و`*.jks` مستبعدان من Git ولا يجب رفعهما إلى GitHub.
+
+بعد نجاح البناء ستجد النسخة الإنتاجية هنا:
 
 `build/app/outputs/flutter-apk/app-release.apk`
 
@@ -119,6 +148,18 @@ flutter pub get
 flutter test
 flutter build apk --release
 ```
+
+## الفحص الآلي
+
+تمت إضافة GitHub Actions لتشغيل:
+
+```bash
+flutter pub get
+flutter analyze
+flutter test --coverage
+```
+
+تلقائيًا عند كل Push وPull Request.
 
 ---
 
