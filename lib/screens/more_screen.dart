@@ -572,7 +572,7 @@ class _ArchiveGroup extends StatelessWidget {
               title: customer.name,
               subtitle: customer.phone.isEmpty
                   ? 'عميل مؤرشف'
-                  : '\${customer.phone} • عميل مؤرشف',
+                  : '${customer.phone} • عميل مؤرشف',
               onRestore: () => onRestoreCustomer(customer),
             ),
           ),
@@ -586,7 +586,7 @@ class _ArchiveGroup extends StatelessWidget {
                   ? 'عمل خياطة'
                   : piece.description,
               subtitle:
-                  '\${shortDate(piece.createdAt)} • \${money(piece.total)}',
+                  '${shortDate(piece.createdAt)} • ${money(piece.total)}',
               onRestore: () => onRestorePiece(piece),
               onDelete: () => onDeletePiece(piece),
             ),
@@ -601,7 +601,7 @@ class _ArchiveGroup extends StatelessWidget {
                   ? 'سحب نقدي'
                   : withdrawal.note,
               subtitle:
-                  '\${shortDate(withdrawal.createdAt)} • \${money(withdrawal.amount)}',
+                  '${shortDate(withdrawal.createdAt)} • ${money(withdrawal.amount)}',
               onRestore: () => onRestoreWithdrawal(withdrawal),
               onDelete: () => onDeleteWithdrawal(withdrawal),
             ),
