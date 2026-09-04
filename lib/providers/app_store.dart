@@ -20,7 +20,7 @@ class AppStore extends ChangeNotifier {
   List<Piece> recentPieces = const [];
   List<Withdrawal> recentWithdrawals = const [];
   ReportData? currentWeek;
-  Map<String, int> totals = const {'pieces': 0, 'withdrawals': 0, 'revenue': 0};
+  Map<String, int> totals = const {'customers': 0, 'pieces': 0, 'withdrawals': 0, 'revenue': 0};
   int trashCount = 0;
   int revision = 0;
 
@@ -109,6 +109,11 @@ class AppStore extends ChangeNotifier {
 
   Future<void> archiveCustomer(int id) async {
     await db.archiveCustomer(id);
+    await refresh();
+  }
+
+  Future<void> restoreCustomer(int id) async {
+    await db.restoreCustomer(id);
     await refresh();
   }
 
