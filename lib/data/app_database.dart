@@ -25,7 +25,7 @@ class AppDatabase {
       version: _version,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
-        await db.execute('PRAGMA journal_mode = WAL');
+        await db.rawQuery('PRAGMA journal_mode = WAL');
       },
       onCreate: _create,
       onUpgrade: _upgrade,
@@ -622,7 +622,7 @@ class AppDatabase {
 
   Future<File> backupDatabase() async {
     final db = await database;
-    await db.execute('PRAGMA wal_checkpoint(FULL)');
+    await db.rawQuery('PRAGMA wal_checkpoint(FULL)');
     final source = File(db.path);
     final dir = await getApplicationDocumentsDirectory();
     final backups = Directory(p.join(dir.path, 'backups'));
@@ -648,7 +648,7 @@ class AppDatabase {
     final noneExists = await backups.list().where((e) => p.basename(e.path).startsWith(prefix)).isEmpty;
     if (!noneExists) return;
     final db = await database;
-    await db.execute('PRAGMA wal_checkpoint(FULL)');
+    await db.rawQuery('PRAGMA wal_checkpoint(FULL)');
     final source = File(db.path);
     await source.copy(p.join(backups.path, '${prefix}_${DateTime.now().millisecondsSinceEpoch}.db'));
     final autoBackups = await backups
