@@ -77,8 +77,13 @@ class _CustomerFormSheetState extends State<CustomerFormSheet> {
       return;
     }
 
-    final values = _measurements.keys.map(_measurement).whereType<double>();
-    if (values.any((value) => value <= 0 || value > 500)) {
+    final invalidMeasurement = _measurements.values.any((controller) {
+      final raw = controller.text.trim().replaceAll(',', '.');
+      if (raw.isEmpty) return false;
+      final value = double.tryParse(raw);
+      return value == null || value <= 0 || value > 500;
+    });
+    if (invalidMeasurement) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('تحقق من المقاسات المدخلة بالسنتيمتر')),
       );
