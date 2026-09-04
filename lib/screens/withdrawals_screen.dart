@@ -222,7 +222,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '\${_items.length} عملية سحب',
+                              '${_items.length} عملية سحب',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: AppTheme.sage,
                               ),
@@ -523,7 +523,7 @@ class _WithdrawalCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '- \${money(withdrawal.amount)}',
+                        '- ${money(withdrawal.amount)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.end,
