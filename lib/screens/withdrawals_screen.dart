@@ -71,9 +71,14 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => WithdrawalFormSheet(
-        withdrawal: item,
-        onSave: (amount, note) => store.saveWithdrawal(id: item.id, amount: amount, note: note),
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: .68,
+        child: WithdrawalFormSheet(
+          withdrawal: item,
+          onSave: (amount, note) =>
+              store.saveWithdrawal(id: item.id, amount: amount, note: note),
+        ),
       ),
     );
     if (changed == true) await _load();
@@ -98,101 +103,443 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
     final revision = context.watch<AppStore>().revision;
     if (revision != _seenRevision) {
       _seenRevision = revision;
-      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _load(); });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _load();
+      });
     }
-    final total = _items.fold<int>(0, (s, e) => s + e.amount);
-    return SafeArea(child: Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('السحبيات', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          const Text('المصروف الشخصي فقط'),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _search,
-            onChanged: (value) {
-              _searchChanged(value);
-              setState(() {});
-            },
-            decoration: InputDecoration(
-              hintText: 'بحث في الملاحظات',
-              prefixIcon: const Icon(Icons.search_rounded),
-              suffixIcon: _search.text.isEmpty
-                  ? null
-                  : IconButton(
-                      onPressed: () {
-                        _search.clear();
-                        _load();
-                        setState(() {});
-                      },
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('إجمالي النتائج', style: TextStyle(color: Colors.black54)), Text(money(total), style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.deficit))]),
-        ]),
-      ),
-      Expanded(child: RefreshIndicator(
-        onRefresh: _load,
-        child: _loading && _items.isEmpty
-            ? ListView(children: const [SizedBox(height: 180), Center(child: CircularProgressIndicator())])
-            : _error != null
-                ? ListView(
-                    children: [
-                      const SizedBox(height: 100),
-                      const Icon(Icons.error_outline_rounded, size: 48, color: Colors.black38),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Text(_error!, textAlign: TextAlign.center),
+
+    final theme = Theme.of(context);
+    final total = _items.fold<int>(0, (sum, item) => sum + item.amount);
+
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'السحبيات',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            'سجل المصروف الشخصي',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.sage,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: FilledButton.tonalIcon(
-                          onPressed: _load,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text('إعادة المحاولة'),
+                    ),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppTheme.mintSoft,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: AppTheme.ink,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                TextField(
+                  controller: _search,
+                  onChanged: (value) {
+                    _searchChanged(value);
+                    setState(() {});
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'ابحث في ملاحظات السحب',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _search.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'مسح البحث',
+                            onPressed: () {
+                              _search.clear();
+                              _load();
+                              setState(() {});
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.card,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppTheme.line),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppTheme.deficit.withValues(alpha: .09),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.south_west_rounded,
+                          size: 20,
+                          color: AppTheme.deficit,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _hasMore ? 'إجمالي المعروض' : 'إجمالي النتائج',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppTheme.sage,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '\${_items.length} عملية سحب',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppTheme.sage,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          money(total),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.deficit,
+                          ),
                         ),
                       ),
                     ],
-                  )
-                : _items.isEmpty
-                ? ListView(children: const [SizedBox(height: 100), Icon(Icons.payments_outlined, size: 50, color: Colors.black26), SizedBox(height: 12), Center(child: Text('لا توجد سحبيات'))])
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 120),
-                    itemCount: _items.length + (_hasMore ? 1 : 0),
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) {
-                      if (i == _items.length) {
-                        return Center(child: FilledButton.tonalIcon(
-                          onPressed: _loadingMore ? null : () => _load(reset: false),
-                          icon: _loadingMore
-                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.expand_more_rounded),
-                          label: Text(_loadingMore ? 'جارٍ التحميل...' : 'تحميل المزيد'),
-                        ));
-                      }
-                      final w = _items[i];
-                      return Card(child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: const CircleAvatar(child: Icon(Icons.payments_rounded)),
-                        title: Text(w.note.isEmpty ? 'سحب نقدي' : w.note, style: const TextStyle(fontWeight: FontWeight.w900)),
-                        subtitle: Text(shortDateTime(w.createdAt)),
-                        trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                          Text('- ${money(w.amount)}', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.deficit)),
-                          PopupMenuButton<String>(
-                            padding: EdgeInsets.zero,
-                            iconSize: 18,
-                            onSelected: (v) => v == 'edit' ? _edit(w) : _delete(w),
-                            itemBuilder: (_) => const [PopupMenuItem(value: 'edit', child: Text('تعديل')), PopupMenuItem(value: 'delete', child: Text('حذف'))],
-                          ),
-                        ]),
-                      ));
-                    },
                   ),
-      )),
-    ]));
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: _buildBody(theme),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(ThemeData theme) {
+    if (_loading && _items.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 180),
+          Center(child: CircularProgressIndicator()),
+        ],
+      );
+    }
+
+    if (_error != null) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 100),
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 48,
+            color: Colors.black38,
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Text(_error!, textAlign: TextAlign.center),
+          ),
+          const SizedBox(height: 14),
+          Center(
+            child: FilledButton.tonalIcon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('إعادة المحاولة'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_items.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 110),
+          Center(
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.mintSoft,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.payments_outlined,
+                size: 34,
+                color: AppTheme.sage,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              _search.text.trim().isEmpty
+                  ? 'لا توجد سحبيات حتى الآن'
+                  : 'لا توجد نتائج مطابقة',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Center(
+            child: Text(
+              _search.text.trim().isEmpty
+                  ? 'أضف أول سحب من الزر أسفل الشاشة'
+                  : 'جرّب عبارة بحث مختلفة',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.sage,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView.separated(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 128),
+      itemCount: _items.length + (_hasMore ? 1 : 0),
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        if (index == _items.length) {
+          return Center(
+            child: FilledButton.tonalIcon(
+              onPressed: _loadingMore ? null : () => _load(reset: false),
+              icon: _loadingMore
+                  ? const SizedBox(
+                      width: 17,
+                      height: 17,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.expand_more_rounded),
+              label: Text(_loadingMore ? 'جارٍ التحميل...' : 'تحميل المزيد'),
+            ),
+          );
+        }
+
+        final item = _items[index];
+        return _WithdrawalCard(
+          withdrawal: item,
+          onEdit: () => _edit(item),
+          onDelete: () => _delete(item),
+        );
+      },
+    );
+  }
+}
+
+class _WithdrawalCard extends StatelessWidget {
+  const _WithdrawalCard({
+    required this.withdrawal,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final Withdrawal withdrawal;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title =
+        withdrawal.note.trim().isEmpty ? 'سحب نقدي' : withdrawal.note.trim();
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onEdit,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 15, 12, 14),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppTheme.mint,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.payments_rounded,
+                      color: AppTheme.ink,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.schedule_rounded,
+                                size: 16,
+                                color: AppTheme.sage,
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  shortDateTime(withdrawal.createdAt),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.sage,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'خيارات السحب',
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(
+                      Icons.more_vert_rounded,
+                      color: AppTheme.sage,
+                    ),
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit();
+                      } else {
+                        onDelete();
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_outlined),
+                            SizedBox(width: 10),
+                            Text('تعديل'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline_rounded,
+                              color: AppTheme.deficit,
+                            ),
+                            SizedBox(width: 10),
+                            Text('حذف'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 11,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.deficit.withValues(alpha: .07),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'مبلغ السحب',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.sage,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '- \${money(withdrawal.amount)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: AppTheme.deficit,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
