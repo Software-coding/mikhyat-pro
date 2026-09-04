@@ -1,0 +1,7 @@
+# انسخ هذا الملف إلى android/key.properties ثم ضع القيم الحقيقية.
+# لا ترفع key.properties أو ملف .jks إلى GitHub.
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=upload-keystore.jks
