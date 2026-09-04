@@ -321,9 +321,13 @@ class AppDatabase {
     final where = <String>['deleted_at IS ${deleted ? 'NOT ' : ''}NULL'];
     final args = <Object?>[];
     if (query.trim().isNotEmpty) {
-      where.add('(description LIKE ? OR EXISTS(SELECT 1 FROM piece_modifications pm WHERE pm.piece_id=pieces.id AND pm.name LIKE ?))');
+      where.add(
+        '(description LIKE ? '
+        'OR EXISTS(SELECT 1 FROM piece_modifications pm WHERE pm.piece_id=pieces.id AND pm.name LIKE ?) '
+        'OR EXISTS(SELECT 1 FROM customers c WHERE c.id=pieces.customer_id AND (c.name LIKE ? OR c.phone LIKE ?)))',
+      );
       final q = '%${query.trim()}%';
-      args.addAll([q, q]);
+      args.addAll([q, q, q, q]);
     }
     final rows = await db.query(
       'pieces',
