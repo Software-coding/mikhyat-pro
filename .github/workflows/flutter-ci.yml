@@ -33,3 +33,6 @@ jobs:
 
       - name: Run tests
         run: flutter test --coverage
+
+      - name: Build Android debug APK
+        run: flutter build apk --debug
