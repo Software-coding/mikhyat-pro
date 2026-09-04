@@ -510,6 +510,16 @@ class AppDatabase {
     );
   }
 
+  Future<void> restoreCustomer(int id) async {
+    final db = await database;
+    await db.update(
+      'customers',
+      {'deleted_at': null, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id=?',
+      whereArgs: [id],
+    );
+  }
+
   Future<List<Withdrawal>> withdrawals({String query = '', bool deleted = false, int? limit, int? offset}) async {
     final db = await database;
     final where = <String>['deleted_at IS ${deleted ? 'NOT ' : ''}NULL'];
@@ -604,9 +614,10 @@ class AppDatabase {
 
   Future<int> trashCount() async {
     final db = await database;
+    final c = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM customers WHERE deleted_at IS NOT NULL')) ?? 0;
     final p = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM pieces WHERE deleted_at IS NOT NULL')) ?? 0;
     final w = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM withdrawals WHERE deleted_at IS NOT NULL')) ?? 0;
-    return p + w;
+    return c + p + w;
   }
 
   Future<File> backupDatabase() async {
