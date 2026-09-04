@@ -226,15 +226,21 @@ class PdfService {
 
   pw.Widget _piecesTable(ReportData r) {
     final data = <List<String>>[
-      ['#', 'التاريخ', 'الوصف', 'العدد', 'السعر العادي', 'التعديلات — السعر × العدد', 'الإجمالي'],
+      ['#', 'التاريخ', 'العميل', 'الوصف', 'العدد', 'السعر العادي', 'التعديلات — السعر × العدد', 'الإجمالي'],
       ...r.pieces.asMap().entries.map((entry) {
         final p = entry.value;
         final mods = p.modifications.isEmpty
             ? 'بدون تعديلات'
             : p.modifications.map((m) => '${m.name}: ${money(m.pricePerPiece)} × ${m.appliedQuantity} = ${money(m.subtotal)}').join('\n');
         return [
-          '${entry.key + 1}', shortDate(p.createdAt), p.description.isEmpty ? 'قطعة خياطة' : p.description,
-          '${p.quantity}', p.modifications.isEmpty ? money(p.basePrice) : '—', mods, money(p.total),
+          '${entry.key + 1}',
+          shortDate(p.createdAt),
+          p.customerName ?? '—',
+          p.description.isEmpty ? 'قطعة خياطة' : p.description,
+          '${p.quantity}',
+          p.modifications.isEmpty ? money(p.basePrice) : '—',
+          mods,
+          money(p.total),
         ];
       }),
     ];
