@@ -27,6 +27,8 @@ class Piece {
   const Piece({
     required this.id,
     required this.description,
+    this.customerId,
+    this.customerName,
     required this.quantity,
     required this.basePrice,
     required this.createdAt,
@@ -37,6 +39,8 @@ class Piece {
 
   final int id;
   final String description;
+  final int? customerId;
+  final String? customerName;
   final int quantity;
   final int basePrice;
   final DateTime createdAt;
