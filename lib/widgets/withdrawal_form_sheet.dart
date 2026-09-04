@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../core/theme.dart';
 import '../models/withdrawal.dart';
 
 class WithdrawalFormSheet extends StatefulWidget {
-  const WithdrawalFormSheet({super.key, this.withdrawal, required this.onSave});
+  const WithdrawalFormSheet({
+    super.key,
+    this.withdrawal,
+    required this.onSave,
+  });
+
   final Withdrawal? withdrawal;
   final Future<void> Function(int amount, String note) onSave;
 
@@ -19,7 +25,9 @@ class _WithdrawalFormSheetState extends State<WithdrawalFormSheet> {
   @override
   void initState() {
     super.initState();
-    _amount = TextEditingController(text: widget.withdrawal?.amount.toString() ?? '');
+    _amount = TextEditingController(
+      text: widget.withdrawal?.amount.toString() ?? '',
+    );
     _note = TextEditingController(text: widget.withdrawal?.note ?? '');
   }
 
@@ -33,15 +41,22 @@ class _WithdrawalFormSheetState extends State<WithdrawalFormSheet> {
   Future<void> _save() async {
     final amount = int.tryParse(_amount.text) ?? 0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أدخل مبلغ السحب')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أدخل مبلغ السحب')),
+      );
       return;
     }
+
     setState(() => _saving = true);
     try {
       await widget.onSave(amount, _note.text.trim());
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر الحفظ: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -49,28 +64,138 @@ class _WithdrawalFormSheetState extends State<WithdrawalFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(context).bottom + 20),
+    final theme = Theme.of(context);
+
+    return Material(
+      color: AppTheme.card,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
       child: SafeArea(
         top: false,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(child: Text(widget.withdrawal == null ? 'تسجيل سحب نقدي' : 'تعديل السحب', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900))),
-            IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
-          ]),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _amount,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(labelText: 'المبلغ', suffixText: 'ريال'),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            10,
+            20,
+            MediaQuery.viewInsetsOf(context).bottom + 22,
           ),
-          const SizedBox(height: 12),
-          TextField(controller: _note, decoration: const InputDecoration(labelText: 'ملاحظة — اختياري', hintText: 'مثال: مصروف شخصي')),
-          const SizedBox(height: 18),
-          SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _saving ? null : _save, icon: const Icon(Icons.check_rounded), label: Text(_saving ? 'جارٍ الحفظ...' : 'حفظ السحب'))),
-        ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 18),
+                  decoration: BoxDecoration(
+                    color: AppTheme.line,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppTheme.mintSoft,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.payments_rounded,
+                      color: AppTheme.ink,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.withdrawal == null
+                              ? 'تسجيل سحب نقدي'
+                              : 'تعديل السحب',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'أدخل المبلغ وأضف ملاحظة تساعدك لاحقًا',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'إغلاق',
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'المبلغ',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _amount,
+                autofocus: widget.withdrawal == null,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.next,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                decoration: const InputDecoration(
+                  hintText: 'مثال: 1000',
+                  suffixText: 'ريال',
+                  prefixIcon: Icon(Icons.payments_outlined),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'الملاحظة',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _note,
+                maxLines: 2,
+                maxLength: 300,
+                decoration: const InputDecoration(
+                  hintText: 'مثال: مصروف شخصي',
+                  prefixIcon: Icon(Icons.notes_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_rounded),
+                  label: Text(
+                    _saving ? 'جارٍ الحفظ...' : 'حفظ السحب',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
