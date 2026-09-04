@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/formatters.dart';
 import '../core/theme.dart';
+import '../models/customer.dart';
 import '../models/piece.dart';
 import '../models/withdrawal.dart';
 import '../providers/app_store.dart';
@@ -13,6 +14,7 @@ class MoreScreen extends StatefulWidget {
 }
 
 class _MoreScreenState extends State<MoreScreen> {
+  List<Customer> _customers = const [];
   List<Piece> _pieces = const [];
   List<Withdrawal> _withdrawals = const [];
   bool _loadingTrash = false;
@@ -22,11 +24,26 @@ class _MoreScreenState extends State<MoreScreen> {
     setState(() => _loadingTrash = true);
     try {
       final db = context.read<AppStore>().db;
-      final results = await Future.wait<dynamic>([db.pieces(deleted: true), db.withdrawals(deleted: true)]);
-      if (mounted) setState(() { _pieces = results[0] as List<Piece>; _withdrawals = results[1] as List<Withdrawal>; });
+      final results = await Future.wait<dynamic>([
+        db.customers(deleted: true),
+        db.pieces(deleted: true),
+        db.withdrawals(deleted: true),
+      ]);
+      if (mounted) {
+        setState(() {
+          _customers = results[0] as List<Customer>;
+          _pieces = results[1] as List<Piece>;
+          _withdrawals = results[2] as List<Withdrawal>;
+        });
+      }
     } finally {
       if (mounted) setState(() => _loadingTrash = false);
     }
+  }
+
+  Future<void> _restoreCustomer(Customer customer) async {
+    await context.read<AppStore>().restoreCustomer(customer.id);
+    await _loadTrash();
   }
 
   Future<void> _restorePiece(Piece p) async {
@@ -121,7 +138,7 @@ class _MoreScreenState extends State<MoreScreen> {
         children: [
           Text('المزيد', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
-          const Text('حماية البيانات وإدارة المحذوفات'),
+          const Text('حماية البيانات وإدارة المحذوفات والأرشيف'),
           const SizedBox(height: 20),
           Text('البيانات', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
@@ -144,7 +161,7 @@ class _MoreScreenState extends State<MoreScreen> {
           ])),
           const SizedBox(height: 22),
           Row(children: [
-            Expanded(child: Text('سلة المحذوفات', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
+            Expanded(child: Text('المحذوفات والأرشيف', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(color: AppTheme.sage.withValues(alpha: .12), borderRadius: BorderRadius.circular(99)),
@@ -152,9 +169,26 @@ class _MoreScreenState extends State<MoreScreen> {
             ),
           ]),
           const SizedBox(height: 10),
-          FilledButton.tonalIcon(onPressed: _loadingTrash ? null : _loadTrash, icon: const Icon(Icons.delete_sweep_outlined), label: Text(_loadingTrash ? 'جارٍ التحميل...' : 'عرض المحذوفات')),
-          if (_pieces.isNotEmpty || _withdrawals.isNotEmpty) ...[
+          FilledButton.tonalIcon(onPressed: _loadingTrash ? null : _loadTrash, icon: const Icon(Icons.delete_sweep_outlined), label: Text(_loadingTrash ? 'جارٍ التحميل...' : 'عرض المحذوفات والأرشيف')),
+          if (_customers.isNotEmpty || _pieces.isNotEmpty || _withdrawals.isNotEmpty) ...[
             const SizedBox(height: 12),
+            ..._customers.map((customer) => Card(
+              child: ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.person_outline_rounded)),
+                title: Text(
+                  customer.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  customer.phone.isEmpty ? 'عميل مؤرشف' : '${customer.phone} • عميل مؤرشف',
+                ),
+                trailing: IconButton(
+                  onPressed: () => _restoreCustomer(customer),
+                  tooltip: 'استعادة العميل',
+                  icon: const Icon(Icons.restore_rounded),
+                ),
+              ),
+            )),
             ..._pieces.map((p) => Card(child: ListTile(
               leading: const CircleAvatar(child: Icon(Icons.content_cut_rounded)),
               title: Text(p.description.isEmpty ? 'عمل خياطة' : p.description, style: const TextStyle(fontWeight: FontWeight.w800)),
