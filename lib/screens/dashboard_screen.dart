@@ -40,11 +40,38 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 22),
               Text('منذ بداية الاستخدام', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
               const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: _SmallCard(label: 'كل القطع', value: '${store.totals['pieces'] ?? 0}')),
-                const SizedBox(width: 10),
-                Expanded(child: _SmallCard(label: 'كل الإيرادات', value: money(store.totals['revenue'] ?? 0))),
-              ]),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = (constraints.maxWidth - 20) / 3;
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      SizedBox(
+                        width: width,
+                        child: _SmallCard(
+                          label: 'العملاء',
+                          value: '${store.totals['customers'] ?? 0}',
+                        ),
+                      ),
+                      SizedBox(
+                        width: width,
+                        child: _SmallCard(
+                          label: 'كل القطع',
+                          value: '${store.totals['pieces'] ?? 0}',
+                        ),
+                      ),
+                      SizedBox(
+                        width: width,
+                        child: _SmallCard(
+                          label: 'الإيرادات',
+                          value: money(store.totals['revenue'] ?? 0),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
               const SizedBox(height: 22),
               _RecentSection(store: store),
             ],
@@ -168,7 +195,11 @@ class _RecentSection extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
           leading: const CircleAvatar(child: Icon(Icons.content_cut_rounded)),
           title: Text(p.description.isEmpty ? 'عمل خياطة' : p.description, style: const TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text('${shortDate(p.createdAt)} • ${p.quantity} قطعة'),
+          subtitle: Text(
+            p.customerName == null || p.customerName!.isEmpty
+                ? '${shortDate(p.createdAt)} • ${p.quantity} قطعة'
+                : '${p.customerName} • ${shortDate(p.createdAt)} • ${p.quantity} قطعة',
+          ),
           trailing: Text(money(p.total), style: const TextStyle(fontWeight: FontWeight.w900)),
         )),
         ...store.recentWithdrawals.take(3).map((w) => ListTile(
