@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme.dart';
 import '../models/customer.dart';
 import '../models/piece.dart';
 import '../models/withdrawal.dart';
@@ -107,9 +108,17 @@ class _HomeShellState extends State<HomeShell> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => WithdrawalFormSheet(
-        withdrawal: withdrawal,
-        onSave: (amount, note) => store.saveWithdrawal(id: withdrawal?.id, amount: amount, note: note),
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: .68,
+        child: WithdrawalFormSheet(
+          withdrawal: withdrawal,
+          onSave: (amount, note) => store.saveWithdrawal(
+            id: withdrawal?.id,
+            amount: amount,
+            note: note,
+          ),
+        ),
       ),
     );
   }
@@ -120,6 +129,7 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(index: _index, children: _screens),
       floatingActionButton: _index <= 3
           ? FloatingActionButton.extended(
+              extendedPadding: const EdgeInsets.symmetric(horizontal: 22),
               onPressed: () {
                 if (_index == 1) {
                   _newCustomer();
@@ -146,18 +156,49 @@ class _HomeShellState extends State<HomeShell> {
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: NavigationBar(
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'الرئيسية'),
-          NavigationDestination(icon: Icon(Icons.people_outline_rounded), selectedIcon: Icon(Icons.people_rounded), label: 'العملاء'),
-          NavigationDestination(icon: Icon(Icons.content_cut_outlined), selectedIcon: Icon(Icons.content_cut_rounded), label: 'الأعمال'),
-          NavigationDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments_rounded), label: 'السحبيات'),
-          NavigationDestination(icon: Icon(Icons.assessment_outlined), selectedIcon: Icon(Icons.assessment_rounded), label: 'التقارير'),
-          NavigationDestination(icon: Icon(Icons.more_horiz_rounded), label: 'المزيد'),
-        ],
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppTheme.line),
+          ),
+        ),
+        child: NavigationBar(
+          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+          selectedIndex: _index,
+          onDestinationSelected: (value) => setState(() => _index = value),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'الرئيسية',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.people_outline_rounded),
+              selectedIcon: Icon(Icons.people_rounded),
+              label: 'العملاء',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.content_cut_outlined),
+              selectedIcon: Icon(Icons.content_cut_rounded),
+              label: 'الأعمال',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.payments_outlined),
+              selectedIcon: Icon(Icons.payments_rounded),
+              label: 'السحبيات',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.assessment_outlined),
+              selectedIcon: Icon(Icons.assessment_rounded),
+              label: 'التقارير',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.more_horiz_rounded),
+              selectedIcon: Icon(Icons.more_horiz_rounded),
+              label: 'المزيد',
+            ),
+          ],
+        ),
       ),
     );
   }
