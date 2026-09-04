@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/customer.dart';
 import '../models/piece.dart';
 import '../models/withdrawal.dart';
 
@@ -11,7 +12,7 @@ class AppDatabase {
   AppDatabase._();
   static final instance = AppDatabase._();
   static const _dbName = 'mikhyat.db';
-  static const _version = 5;
+  static const _version = 6;
   Database? _db;
 
   Future<Database> get database async => _db ??= await _open();
@@ -33,14 +34,33 @@ class AppDatabase {
 
   Future<void> _create(Database db, int version) async {
     await db.execute('''
+      CREATE TABLE customers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL DEFAULT '',
+        notes TEXT NOT NULL DEFAULT '',
+        shoulder REAL,
+        chest REAL,
+        waist REAL,
+        hips REAL,
+        sleeve_length REAL,
+        garment_length REAL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      )
+    ''');
+    await db.execute('''
       CREATE TABLE pieces(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         description TEXT NOT NULL DEFAULT '',
+        customer_id INTEGER,
         quantity INTEGER NOT NULL CHECK(quantity > 0),
         base_price INTEGER NOT NULL DEFAULT 0 CHECK(base_price >= 0),
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        deleted_at TEXT
+        deleted_at TEXT,
+        FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE SET NULL
       )
     ''');
     await db.execute('''
@@ -68,6 +88,9 @@ class AppDatabase {
 
   Future<void> _upgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion >= 5) {
+      if (oldVersion < 6) {
+        await _upgradeToV6(db);
+      }
       await _indexes(db);
       return;
     }
@@ -168,7 +191,40 @@ class AppDatabase {
     await db.execute('ALTER TABLE piece_modifications_new RENAME TO piece_modifications');
     await db.execute('ALTER TABLE withdrawals_new RENAME TO withdrawals');
     await db.execute('PRAGMA foreign_keys = ON');
+    if (newVersion >= 6) {
+      await _upgradeToV6(db);
+    }
     await _indexes(db);
+  }
+
+  Future<void> _upgradeToV6(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS customers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL DEFAULT '',
+        notes TEXT NOT NULL DEFAULT '',
+        shoulder REAL,
+        chest REAL,
+        waist REAL,
+        hips REAL,
+        sleeve_length REAL,
+        garment_length REAL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      )
+    ''');
+
+    final columns = (await db.rawQuery('PRAGMA table_info(pieces)'))
+        .map((row) => row['name']?.toString())
+        .whereType<String>()
+        .toSet();
+    if (!columns.contains('customer_id')) {
+      await db.execute(
+        'ALTER TABLE pieces ADD COLUMN customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL',
+      );
+    }
   }
 
   static int _asInt(Object? value, int fallback) {
@@ -198,6 +254,9 @@ class AppDatabase {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_withdrawals_active_created ON withdrawals(deleted_at, created_at DESC, id DESC)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_piece_mod_piece ON piece_modifications(piece_id, id)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_piece_description ON pieces(description)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_pieces_customer ON pieces(customer_id)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_customers_active_name ON customers(deleted_at, name, id DESC)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_withdrawal_note ON withdrawals(note)');
   }
 
@@ -221,14 +280,32 @@ class AppDatabase {
     return map;
   }
 
+  Future<Map<int, String>> _customerNamesMap(DatabaseExecutor db, List<int> customerIds) async {
+    if (customerIds.isEmpty) return const {};
+    final placeholders = List.filled(customerIds.length, '?').join(',');
+    final rows = await db.rawQuery(
+      'SELECT id, name FROM customers WHERE id IN ($placeholders)',
+      customerIds,
+    );
+    return {
+      for (final row in rows)
+        if (row['id'] is int && row['name'] is String) row['id'] as int: row['name'] as String,
+    };
+  }
+
   Future<List<Piece>> _piecesFromRows(DatabaseExecutor db, List<Map<String, Object?>> rows) async {
     final ids = rows.map((r) => r['id'] as int).toList();
     final mods = await _modsMap(db, ids);
+    final customerIds = rows.map((r) => r['customer_id'] as int?).whereType<int>().toSet().toList();
+    final customerNames = await _customerNamesMap(db, customerIds);
     return rows.map((r) {
       final id = r['id'] as int;
+      final customerId = r['customer_id'] as int?;
       return Piece(
         id: id,
         description: (r['description'] as String?) ?? '',
+        customerId: customerId,
+        customerName: customerId == null ? null : customerNames[customerId],
         quantity: r['quantity'] as int,
         basePrice: r['base_price'] as int,
         createdAt: DateTime.parse(r['created_at'] as String),
@@ -244,9 +321,13 @@ class AppDatabase {
     final where = <String>['deleted_at IS ${deleted ? 'NOT ' : ''}NULL'];
     final args = <Object?>[];
     if (query.trim().isNotEmpty) {
-      where.add('(description LIKE ? OR EXISTS(SELECT 1 FROM piece_modifications pm WHERE pm.piece_id=pieces.id AND pm.name LIKE ?))');
+      where.add(
+        '(description LIKE ? '
+        'OR EXISTS(SELECT 1 FROM piece_modifications pm WHERE pm.piece_id=pieces.id AND pm.name LIKE ?) '
+        'OR EXISTS(SELECT 1 FROM customers c WHERE c.id=pieces.customer_id AND (c.name LIKE ? OR c.phone LIKE ?)))',
+      );
       final q = '%${query.trim()}%';
-      args.addAll([q, q]);
+      args.addAll([q, q, q, q]);
     }
     final rows = await db.query(
       'pieces',
@@ -272,6 +353,7 @@ class AppDatabase {
 
   Future<int> savePiece({
     int? id,
+    int? customerId,
     required String description,
     required int quantity,
     required int basePrice,
@@ -295,6 +377,7 @@ class AppDatabase {
       if (id == null) {
         pieceId = await txn.insert('pieces', {
           'description': _truncate(description.trim(), 300),
+          'customer_id': customerId,
           'quantity': quantity,
           'base_price': modifications.isEmpty ? basePrice : 0,
           'created_at': (createdAt ?? now).toIso8601String(),
@@ -307,6 +390,7 @@ class AppDatabase {
         pieceId = id;
         await txn.update('pieces', {
           'description': _truncate(description.trim(), 300),
+          'customer_id': customerId,
           'quantity': quantity,
           'base_price': modifications.isEmpty ? basePrice : 0,
           // لا نلمس created_at عند التعديل.
@@ -324,6 +408,116 @@ class AppDatabase {
       }
       return pieceId;
     });
+  }
+
+  Future<List<Customer>> customers({
+    String query = '',
+    bool deleted = false,
+    int? limit,
+    int? offset,
+  }) async {
+    final db = await database;
+    final where = <String>['deleted_at IS ${deleted ? 'NOT ' : ''}NULL'];
+    final args = <Object?>[];
+    if (query.trim().isNotEmpty) {
+      where.add('(name LIKE ? OR phone LIKE ? OR notes LIKE ?)');
+      final q = '%${query.trim()}%';
+      args.addAll([q, q, q]);
+    }
+    final rows = await db.query(
+      'customers',
+      where: where.join(' AND '),
+      whereArgs: args,
+      orderBy: 'name COLLATE NOCASE ASC, id DESC',
+      limit: limit,
+      offset: offset,
+    );
+    return rows.map(_customerFromRow).toList();
+  }
+
+  Customer _customerFromRow(Map<String, Object?> row) => Customer(
+        id: row['id'] as int,
+        name: row['name'] as String,
+        phone: (row['phone'] as String?) ?? '',
+        notes: (row['notes'] as String?) ?? '',
+        shoulder: (row['shoulder'] as num?)?.toDouble(),
+        chest: (row['chest'] as num?)?.toDouble(),
+        waist: (row['waist'] as num?)?.toDouble(),
+        hips: (row['hips'] as num?)?.toDouble(),
+        sleeveLength: (row['sleeve_length'] as num?)?.toDouble(),
+        garmentLength: (row['garment_length'] as num?)?.toDouble(),
+        createdAt: DateTime.parse(row['created_at'] as String),
+        updatedAt: DateTime.parse(row['updated_at'] as String),
+        deletedAt: row['deleted_at'] == null ? null : DateTime.parse(row['deleted_at'] as String),
+      );
+
+  Future<int> saveCustomer({
+    int? id,
+    required String name,
+    required String phone,
+    required String notes,
+    double? shoulder,
+    double? chest,
+    double? waist,
+    double? hips,
+    double? sleeveLength,
+    double? garmentLength,
+  }) async {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) throw ArgumentError('اسم العميل مطلوب');
+
+    double? clean(double? value) {
+      if (value == null) return null;
+      if (value <= 0 || value > 500) throw ArgumentError('قيمة القياس غير صالحة');
+      return value;
+    }
+
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    final values = <String, Object?>{
+      'name': _truncate(normalizedName, 120),
+      'phone': _truncate(phone.trim(), 40),
+      'notes': _truncate(notes.trim(), 500),
+      'shoulder': clean(shoulder),
+      'chest': clean(chest),
+      'waist': clean(waist),
+      'hips': clean(hips),
+      'sleeve_length': clean(sleeveLength),
+      'garment_length': clean(garmentLength),
+      'updated_at': now,
+    };
+
+    if (id == null) {
+      return db.insert('customers', {
+        ...values,
+        'created_at': now,
+        'deleted_at': null,
+      });
+    }
+
+    final changed = await db.update('customers', values, where: 'id=?', whereArgs: [id]);
+    if (changed == 0) throw StateError('العميل غير موجود');
+    return id;
+  }
+
+  Future<void> archiveCustomer(int id) async {
+    final db = await database;
+    await db.update(
+      'customers',
+      {'deleted_at': DateTime.now().toIso8601String(), 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id=?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> restoreCustomer(int id) async {
+    final db = await database;
+    await db.update(
+      'customers',
+      {'deleted_at': null, 'updated_at': DateTime.now().toIso8601String()},
+      where: 'id=?',
+      whereArgs: [id],
+    );
   }
 
   Future<List<Withdrawal>> withdrawals({String query = '', bool deleted = false, int? limit, int? offset}) async {
@@ -420,9 +614,10 @@ class AppDatabase {
 
   Future<int> trashCount() async {
     final db = await database;
+    final c = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM customers WHERE deleted_at IS NOT NULL')) ?? 0;
     final p = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM pieces WHERE deleted_at IS NOT NULL')) ?? 0;
     final w = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM withdrawals WHERE deleted_at IS NOT NULL')) ?? 0;
-    return p + w;
+    return c + p + w;
   }
 
   Future<File> backupDatabase() async {
@@ -538,8 +733,24 @@ class AppDatabase {
       'pieces': {
         'id',
         'description',
+        'customer_id',
         'quantity',
         'base_price',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+      },
+      'customers': {
+        'id',
+        'name',
+        'phone',
+        'notes',
+        'shoulder',
+        'chest',
+        'waist',
+        'hips',
+        'sleeve_length',
+        'garment_length',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -589,6 +800,7 @@ class AppDatabase {
   Future<Map<String, int>> allTimeTotals() async {
     final db = await database;
     final pieces = Sqflite.firstIntValue(await db.rawQuery('SELECT COALESCE(SUM(quantity),0) FROM pieces WHERE deleted_at IS NULL')) ?? 0;
+    final customers = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL')) ?? 0;
     final withdrawals = Sqflite.firstIntValue(await db.rawQuery('SELECT COALESCE(SUM(amount),0) FROM withdrawals WHERE deleted_at IS NULL')) ?? 0;
     final revenue = Sqflite.firstIntValue(await db.rawQuery("""
       SELECT COALESCE(SUM(
@@ -599,7 +811,7 @@ class AppDatabase {
       ), 0)
       FROM pieces WHERE deleted_at IS NULL
     """)) ?? 0;
-    return {'pieces': pieces, 'withdrawals': withdrawals, 'revenue': revenue};
+    return {'pieces': pieces, 'customers': customers, 'withdrawals': withdrawals, 'revenue': revenue};
   }
 
   String _dateOnly(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

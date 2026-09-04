@@ -83,8 +83,10 @@ class _PiecesScreenState extends State<PiecesScreen> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
           child: PieceFormSheet(
             piece: piece,
-            onSave: (description, quantity, basePrice, mods) => store.savePiece(
+            customers: store.customers,
+            onSave: (customerId, description, quantity, basePrice, mods) => store.savePiece(
               id: piece.id,
+              customerId: customerId,
               description: description,
               quantity: quantity,
               basePrice: basePrice,
@@ -134,7 +136,7 @@ class _PiecesScreenState extends State<PiecesScreen> {
               controller: _search,
               onChanged: _searchChanged,
               decoration: InputDecoration(
-                hintText: 'بحث بالوصف أو اسم التعديل',
+                hintText: 'بحث بالعميل أو الوصف أو التعديل',
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _search.text.isEmpty ? null : IconButton(onPressed: () { _search.clear(); _load(); setState(() {}); }, icon: const Icon(Icons.close_rounded)),
               ),
@@ -189,6 +191,25 @@ class _PieceCard extends StatelessWidget {
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(piece.description.isEmpty ? 'عمل خياطة' : piece.description, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+              const SizedBox(height: 3),
+              if (piece.customerName != null && piece.customerName!.isNotEmpty) ...[
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(Icons.person_outline_rounded, size: 15, color: AppTheme.sage),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        piece.customerName!,
+                        style: const TextStyle(
+                          color: AppTheme.sage,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 3),
               Text('${shortDateTime(piece.createdAt)} • ${piece.quantity} قطعة', style: const TextStyle(color: Colors.black54)),
             ])),

@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/formatters.dart';
+import '../models/customer.dart';
 import '../models/piece.dart';
 
 class PieceFormSheet extends StatefulWidget {
-  const PieceFormSheet({super.key, this.piece, required this.onSave});
+  const PieceFormSheet({
+    super.key,
+    this.piece,
+    this.customers = const [],
+    required this.onSave,
+  });
+
   final Piece? piece;
-  final Future<void> Function(String description, int quantity, int basePrice, List<PieceModification> mods) onSave;
+  final List<Customer> customers;
+  final Future<void> Function(
+    int? customerId,
+    String description,
+    int quantity,
+    int basePrice,
+    List<PieceModification> mods,
+  ) onSave;
 
   static const commonMods = <String>[
     'الطول', 'العرض', 'طول الكم', 'عرض الكم', 'توسيع', 'تضييق', 'تعديل الكتف', 'تعديل الياقة', 'تغيير سحاب'
@@ -21,6 +35,7 @@ class _PieceFormSheetState extends State<PieceFormSheet> {
   late final TextEditingController _description;
   late final TextEditingController _basePrice;
   final _custom = TextEditingController();
+  late int? _customerId;
   late int _quantity;
   late List<PieceModification> _mods;
   bool _saving = false;
@@ -30,6 +45,7 @@ class _PieceFormSheetState extends State<PieceFormSheet> {
     super.initState();
     final p = widget.piece;
     _description = TextEditingController(text: p?.description ?? '');
+    _customerId = p?.customerId;
     _basePrice = TextEditingController(text: p == null || p.hasModifications ? '' : p.basePrice.toString());
     _quantity = p?.quantity ?? 1;
     _mods = p?.modifications.map((m) => m.copyWith()).toList() ?? [];
@@ -96,7 +112,7 @@ class _PieceFormSheetState extends State<PieceFormSheet> {
     }
     setState(() => _saving = true);
     try {
-      await widget.onSave(_description.text.trim(), _quantity, base, _mods);
+      await widget.onSave(_customerId, _description.text.trim(), _quantity, base, _mods);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e')));
@@ -108,6 +124,8 @@ class _PieceFormSheetState extends State<PieceFormSheet> {
   @override
   Widget build(BuildContext context) {
     final hasMods = _mods.isNotEmpty;
+    final selectedCustomerIsActive = _customerId == null ||
+        widget.customers.any((customer) => customer.id == _customerId);
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
@@ -129,6 +147,48 @@ class _PieceFormSheetState extends State<PieceFormSheet> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  DropdownButtonFormField<int?>(
+                    initialValue: _customerId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'العميل — اختياري',
+                      prefixIcon: Icon(Icons.person_outline_rounded),
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('بدون ربط بعميل'),
+                      ),
+                      if (_customerId != null && !selectedCustomerIsActive)
+                        DropdownMenuItem<int?>(
+                          value: _customerId,
+                          child: Text(
+                            '${widget.piece?.customerName ?? 'عميل مؤرشف'} • مؤرشف',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ...widget.customers.map(
+                        (customer) => DropdownMenuItem<int?>(
+                          value: customer.id,
+                          child: Text(
+                            customer.phone.isEmpty
+                                ? customer.name
+                                : '${customer.name} • ${customer.phone}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) => setState(() => _customerId = value),
+                  ),
+                  if (widget.customers.isEmpty) ...[
+                    const SizedBox(height: 6),
+                    const Text(
+                      'يمكنك إضافة عميل من تبويب العملاء ثم ربط الأعمال به.',
+                      style: TextStyle(color: Colors.black54, fontSize: 12),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _description,
                     decoration: const InputDecoration(labelText: 'وصف القطعة — اختياري', hintText: 'مثال: فستان أسود'),

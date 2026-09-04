@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../data/app_database.dart';
+import '../models/customer.dart';
 import '../models/piece.dart';
 import '../models/report_data.dart';
 import '../models/withdrawal.dart';
@@ -15,10 +16,11 @@ class AppStore extends ChangeNotifier {
 
   bool loading = true;
   String? error;
+  List<Customer> customers = const [];
   List<Piece> recentPieces = const [];
   List<Withdrawal> recentWithdrawals = const [];
   ReportData? currentWeek;
-  Map<String, int> totals = const {'pieces': 0, 'withdrawals': 0, 'revenue': 0};
+  Map<String, int> totals = const {'customers': 0, 'pieces': 0, 'withdrawals': 0, 'revenue': 0};
   int trashCount = 0;
   int revision = 0;
 
@@ -37,17 +39,19 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
     try {
       final result = await Future.wait<dynamic>([
+        db.customers(limit: 500),
         db.pieces(limit: 8),
         db.withdrawals(limit: 8),
         reports.week(),
         db.allTimeTotals(),
         db.trashCount(),
       ]);
-      recentPieces = result[0] as List<Piece>;
-      recentWithdrawals = result[1] as List<Withdrawal>;
-      currentWeek = result[2] as ReportData;
-      totals = result[3] as Map<String, int>;
-      trashCount = result[4] as int;
+      customers = result[0] as List<Customer>;
+      recentPieces = result[1] as List<Piece>;
+      recentWithdrawals = result[2] as List<Withdrawal>;
+      currentWeek = result[3] as ReportData;
+      totals = result[4] as Map<String, int>;
+      trashCount = result[5] as int;
       revision++;
     } catch (e) {
       error = e.toString();
@@ -59,6 +63,7 @@ class AppStore extends ChangeNotifier {
 
   Future<void> savePiece({
     int? id,
+    int? customerId,
     required String description,
     required int quantity,
     required int basePrice,
@@ -66,11 +71,49 @@ class AppStore extends ChangeNotifier {
   }) async {
     await db.savePiece(
       id: id,
+      customerId: customerId,
       description: description,
       quantity: quantity,
       basePrice: basePrice,
       modifications: modifications,
     );
+    await refresh();
+  }
+
+  Future<void> saveCustomer({
+    int? id,
+    required String name,
+    required String phone,
+    required String notes,
+    double? shoulder,
+    double? chest,
+    double? waist,
+    double? hips,
+    double? sleeveLength,
+    double? garmentLength,
+  }) async {
+    await db.saveCustomer(
+      id: id,
+      name: name,
+      phone: phone,
+      notes: notes,
+      shoulder: shoulder,
+      chest: chest,
+      waist: waist,
+      hips: hips,
+      sleeveLength: sleeveLength,
+      garmentLength: garmentLength,
+    );
+    await refresh();
+  }
+
+  Future<void> archiveCustomer(int id) async {
+    await db.archiveCustomer(id);
+    await refresh();
+  }
+
+  Future<void> restoreCustomer(int id) async {
+    await db.restoreCustomer(id);
     await refresh();
   }
 
