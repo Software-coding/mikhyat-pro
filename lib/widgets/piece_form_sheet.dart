@@ -124,6 +124,8 @@ class _PieceFormSheetState extends State<PieceFormSheet> {
   @override
   Widget build(BuildContext context) {
     final hasMods = _mods.isNotEmpty;
+    final selectedCustomerIsActive = _customerId == null ||
+        widget.customers.any((customer) => customer.id == _customerId);
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
@@ -157,6 +159,14 @@ class _PieceFormSheetState extends State<PieceFormSheet> {
                         value: null,
                         child: Text('بدون ربط بعميل'),
                       ),
+                      if (_customerId != null && !selectedCustomerIsActive)
+                        DropdownMenuItem<int?>(
+                          value: _customerId,
+                          child: Text(
+                            '${widget.piece?.customerName ?? 'عميل مؤرشف'} • مؤرشف',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ...widget.customers.map(
                         (customer) => DropdownMenuItem<int?>(
                           value: customer.id,
