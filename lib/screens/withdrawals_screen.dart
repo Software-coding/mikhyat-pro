@@ -20,6 +20,7 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
   bool _loading = true;
   bool _loadingMore = false;
   bool _hasMore = false;
+  String? _error;
   int _seenRevision = -1;
   static const _pageSize = 50;
 
@@ -30,7 +31,10 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
 
   Future<void> _load({bool reset = true}) async {
     if (reset) {
-      setState(() => _loading = true);
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
     } else {
       if (_loadingMore || !_hasMore) return;
       setState(() => _loadingMore = true);
@@ -43,7 +47,14 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
       );
       final more = data.length > _pageSize;
       final page = data.take(_pageSize).toList();
-      if (mounted) setState(() { _items = reset ? page : [..._items, ...page]; _hasMore = more; });
+      if (mounted) {
+        setState(() {
+          _items = reset ? page : [..._items, ...page];
+          _hasMore = more;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() { _loading = false; _loadingMore = false; });
     }
@@ -98,7 +109,27 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
           const SizedBox(height: 4),
           const Text('المصروف الشخصي فقط'),
           const SizedBox(height: 14),
-          TextField(controller: _search, onChanged: _searchChanged, decoration: const InputDecoration(hintText: 'بحث في الملاحظات', prefixIcon: Icon(Icons.search_rounded))),
+          TextField(
+            controller: _search,
+            onChanged: (value) {
+              _searchChanged(value);
+              setState(() {});
+            },
+            decoration: InputDecoration(
+              hintText: 'بحث في الملاحظات',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        _search.clear();
+                        _load();
+                        setState(() {});
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+            ),
+          ),
           const SizedBox(height: 10),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('إجمالي النتائج', style: TextStyle(color: Colors.black54)), Text(money(total), style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.deficit))]),
         ]),
@@ -107,7 +138,27 @@ class _WithdrawalsScreenState extends State<WithdrawalsScreen> {
         onRefresh: _load,
         child: _loading && _items.isEmpty
             ? ListView(children: const [SizedBox(height: 180), Center(child: CircularProgressIndicator())])
-            : _items.isEmpty
+            : _error != null
+                ? ListView(
+                    children: [
+                      const SizedBox(height: 100),
+                      const Icon(Icons.error_outline_rounded, size: 48, color: Colors.black38),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(_error!, textAlign: TextAlign.center),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: FilledButton.tonalIcon(
+                          onPressed: _load,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('إعادة المحاولة'),
+                        ),
+                      ),
+                    ],
+                  )
+                : _items.isEmpty
                 ? ListView(children: const [SizedBox(height: 100), Icon(Icons.payments_outlined, size: 50, color: Colors.black26), SizedBox(height: 12), Center(child: Text('لا توجد سحبيات'))])
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(18, 8, 18, 120),
