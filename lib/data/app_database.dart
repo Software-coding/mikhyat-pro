@@ -456,40 +456,134 @@ class AppDatabase {
     await db.execute('PRAGMA wal_checkpoint(FULL)');
     final source = File(db.path);
     await source.copy(p.join(backups.path, '${prefix}_${DateTime.now().millisecondsSinceEpoch}.db'));
-    final all = await backups.list().where((e) => e is File && e.path.endsWith('.db')).cast<File>().toList();
-    all.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-    for (final old in all.skip(14)) {
-      try { await old.delete(); } catch (_) {}
+    final autoBackups = await backups
+        .list()
+        .where((e) =>
+            e is File &&
+            e.path.endsWith('.db') &&
+            p.basename(e.path).startsWith('mikhyat_auto_'))
+        .cast<File>()
+        .toList();
+    autoBackups.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+    for (final old in autoBackups.skip(14)) {
+      try {
+        await old.delete();
+      } catch (_) {
+        // فشل تنظيف نسخة قديمة لا يجب أن يعطّل التطبيق.
+      }
     }
   }
 
   Future<bool> importBackup() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['db']);
     if (result == null || result.files.single.path == null) return false;
+
     final picked = File(result.files.single.path!);
     final check = await openDatabase(picked.path, readOnly: true);
     try {
-      final integrity = await check.rawQuery('PRAGMA integrity_check');
-      final ok = integrity.isNotEmpty && integrity.first.values.first.toString().toLowerCase() == 'ok';
-      if (!ok) throw StateError('ملف قاعدة البيانات تالف');
-      final tables = (await check.rawQuery("SELECT name FROM sqlite_master WHERE type='table'"))
-          .map((e) => e['name']?.toString()).toSet();
-      if (!tables.containsAll({'pieces', 'piece_modifications', 'withdrawals'})) {
-        throw StateError('ملف النسخة الاحتياطية غير صالح');
-      }
+      await _validateBackupFile(check);
     } finally {
       await check.close();
     }
 
     // نحفظ الوضع الحالي أولًا، ثم نغلق الاتصال قبل استبدال الملف.
-    await backupDatabase();
+    final safetyBackup = await backupDatabase();
     final current = await database;
     final currentPath = current.path;
+    if (p.equals(p.normalize(picked.absolute.path), p.normalize(File(currentPath).absolute.path))) {
+      throw StateError('اختر ملف نسخة احتياطية مختلفًا عن قاعدة البيانات الحالية');
+    }
+
     await current.close();
     _db = null;
-    await picked.copy(currentPath);
-    _db = await _open();
-    return true;
+
+    try {
+      await _deleteSqliteSidecars(currentPath);
+      await picked.copy(currentPath);
+      _db = await _open();
+      await _validateCurrentSchema(_db!);
+      return true;
+    } catch (_) {
+      // إذا فشلت الاستعادة لأي سبب، نرجع تلقائيًا لنسخة الأمان السابقة.
+      try {
+        await _db?.close();
+      } catch (_) {}
+      _db = null;
+      await _deleteSqliteSidecars(currentPath);
+      await safetyBackup.copy(currentPath);
+      _db = await _open();
+      rethrow;
+    }
+  }
+
+  Future<void> _validateBackupFile(Database db) async {
+    final integrity = await db.rawQuery('PRAGMA integrity_check');
+    final ok = integrity.isNotEmpty &&
+        integrity.first.values.first.toString().toLowerCase() == 'ok';
+    if (!ok) {
+      throw StateError('ملف قاعدة البيانات تالف');
+    }
+
+    final tables = (await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'"))
+        .map((e) => e['name']?.toString())
+        .whereType<String>()
+        .toSet();
+    if (!tables.containsAll({'pieces', 'piece_modifications', 'withdrawals'})) {
+      throw StateError('ملف النسخة الاحتياطية غير صالح');
+    }
+  }
+
+  Future<void> _validateCurrentSchema(Database db) async {
+    const requiredColumns = <String, Set<String>>{
+      'pieces': {
+        'id',
+        'description',
+        'quantity',
+        'base_price',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+      },
+      'piece_modifications': {
+        'id',
+        'piece_id',
+        'name',
+        'price_per_piece',
+        'applied_quantity',
+      },
+      'withdrawals': {
+        'id',
+        'amount',
+        'note',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+      },
+    };
+
+    for (final entry in requiredColumns.entries) {
+      final rows = await db.rawQuery('PRAGMA table_info(${entry.key})');
+      final columns = rows
+          .map((row) => row['name']?.toString())
+          .whereType<String>()
+          .toSet();
+      if (!columns.containsAll(entry.value)) {
+        throw StateError('بنية النسخة الاحتياطية غير متوافقة: ${entry.key}');
+      }
+    }
+  }
+
+  Future<void> _deleteSqliteSidecars(String databasePath) async {
+    for (final suffix in const ['-wal', '-shm']) {
+      final sidecar = File('$databasePath$suffix');
+      if (await sidecar.exists()) {
+        try {
+          await sidecar.delete();
+        } catch (_) {
+          // سيحاول SQLite معالجة الملف إن تعذر حذفه.
+        }
+      }
+    }
   }
 
   Future<Map<String, int>> allTimeTotals() async {

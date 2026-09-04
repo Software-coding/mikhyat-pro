@@ -11,6 +11,15 @@ if not exist android\settings.gradle if not exist android\settings.gradle.kts (
   flutter create . --platforms=android --org com.mikhyat --project-name mikhyat_pro
   if errorlevel 1 goto :fail
 )
+if not exist android\key.properties (
+  echo Release signing is not configured.
+  echo Copy android\key.properties.example to android\key.properties
+  echo and configure your private keystore first.
+  echo.
+  echo For a local test APK, run BUILD_APK_DEBUG.bat instead.
+  pause
+  exit /b 1
+)
 flutter pub get
 if errorlevel 1 goto :fail
 flutter test
